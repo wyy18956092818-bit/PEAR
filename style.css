@@ -29,6 +29,9 @@ body.started .topbar { opacity: 1; pointer-events: auto; }
 .icon-button[aria-pressed="true"] .sound-bars i { animation: none; height: 2px; }
 .review-button { height: 2.7rem; padding: 0 1rem; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; color: #cfc5d8; background: rgba(255,255,255,.04); backdrop-filter: blur(12px); font: .7rem/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .15em; cursor: pointer; }
 .review-button:hover { color: #fff; border-color: rgba(255,130,200,.34); background: rgba(255,130,200,.08); }
+.review-control { position: relative; }
+.review-taunt { position: absolute; top: 50%; right: calc(100% + .8rem); color: #b53949; font: .7rem/1.4 "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif; letter-spacing: .12em; white-space: nowrap; text-shadow: 0 0 12px rgba(155, 13, 35, .4); opacity: 0; transform: translateY(-50%) translateX(.35rem); transition: opacity .35s, transform .35s; pointer-events: none; }
+.review-taunt.visible { opacity: 1; transform: translateY(-50%) translateX(0); }
 .stage { position: relative; z-index: 2; display: grid; place-items: center; width: 100vw; height: 100svh; padding: 6.5rem clamp(1.5rem, 8vw, 8rem) 6rem; outline: none; cursor: pointer; }
 .ending-kicker { margin: 0 0 1.2rem; color: var(--pink); font: 600 .65rem/1.2 ui-sans-serif, system-ui, sans-serif; letter-spacing: .34em; }
 .story { width: min(62rem, 100%); text-align: center; }
@@ -84,3 +87,4 @@ body.whispers-active .secret-code { opacity: .62; pointer-events: auto; }
 @keyframes whisperDrift { 0% { opacity: 0; transform: translateY(8px); } 15% { opacity: .72; } 75% { opacity: .58; } 100% { opacity: 0; transform: translateY(-18px); } }
 @media (max-width: 600px) { .stage { padding-inline: 1.7rem; } .topbar { left: 0; justify-content: flex-end; } .review-button { padding-inline: .85rem; } .story-line { line-height: 1.8; } .line-wrap { min-height: 13rem; } .previous-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } .whisper { animation: none !important; opacity: .72; } }
+
