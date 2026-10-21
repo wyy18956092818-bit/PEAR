@@ -11,6 +11,7 @@ const bgm = document.querySelector('#bgm');
 const soundToggle = document.querySelector('#soundToggle');
 const continueHint = document.querySelector('#continueHint');
 const reviewButton = document.querySelector('#reviewButton');
+const reviewTaunt = document.querySelector('#reviewTaunt');
 const reviewPanel = document.querySelector('#reviewPanel');
 const reviewBackdrop = document.querySelector('#reviewBackdrop');
 const closeReviewButton = document.querySelector('#closeReview');
@@ -33,6 +34,7 @@ let pendingFirstClick = false;
 let musicRequested = false;
 let mutedByUser = false;
 let fadePauseTimer;
+let reviewTauntTimer;
 let codeBuffer = '';
 let audioContext;
 let audioFilter;
@@ -174,6 +176,8 @@ function showWhisper() {
 
 function resetStory() {
   window.clearTimeout(fadePauseTimer);
+  window.clearTimeout(reviewTauntTimer);
+  reviewTaunt.classList.remove('visible');
   bgm.pause();
   try { bgm.currentTime = 0; } catch {}
   bgm.playbackRate = 1;
@@ -297,6 +301,14 @@ function appendReviewEntry(text) {
 }
 
 function openReview() {
+  if (finished) {
+    window.clearTimeout(reviewTauntTimer);
+    reviewTaunt.classList.remove('visible');
+    void reviewTaunt.offsetWidth;
+    reviewTaunt.classList.add('visible');
+    reviewTauntTimer = window.setTimeout(() => reviewTaunt.classList.remove('visible'), 3000);
+    return;
+  }
   if (!history.length) reviewList.innerHTML = '<p class="review-empty">还没有可以回顾的内容。</p>';
   reviewBackdrop.hidden = false;
   reviewPanel.classList.add('open');
@@ -411,3 +423,4 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 drawStars();
 loadStory();
+
