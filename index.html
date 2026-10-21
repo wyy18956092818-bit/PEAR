@@ -17,7 +17,10 @@
       <button id="soundToggle" class="icon-button" type="button" aria-label="关闭音乐" aria-pressed="false">
         <span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i></span>
       </button>
-      <button id="reviewButton" class="review-button" type="button">回顾对话</button>
+      <div class="review-control">
+        <span id="reviewTaunt" class="review-taunt" role="status" aria-live="polite">你想逃跑对吗</span>
+        <button id="reviewButton" class="review-button" type="button">回顾对话</button>
+      </div>
     </header>
 
     <main id="stage" class="stage" tabindex="0" role="button" aria-label="点击显示下一句话">
@@ -52,3 +55,4 @@
     <script src="./app.js" defer></script>
   </body>
 </html>
+
