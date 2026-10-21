@@ -15,6 +15,8 @@ const reviewPanel = document.querySelector('#reviewPanel');
 const reviewBackdrop = document.querySelector('#reviewBackdrop');
 const closeReviewButton = document.querySelector('#closeReview');
 const reviewList = document.querySelector('#reviewList');
+const whisperLayer = document.querySelector('#whisperLayer');
+const secretCode = document.querySelector('#secretCode');
 
 let lines = [];
 let index = -1;
@@ -23,7 +25,15 @@ let locked = false;
 let stars = [];
 let shootingStar = null;
 let afterIndex = -1;
+let revealIndex = 0;
 let finished = false;
+let whispersActive = false;
+let whisperIndex = 0;
+let pendingFirstClick = false;
+let musicRequested = false;
+let mutedByUser = false;
+let fadePauseTimer;
+let codeBuffer = '';
 let audioContext;
 let audioFilter;
 let audioGain;
@@ -31,6 +41,13 @@ const history = [];
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const finalCredit = { text: 'BGM：まらしぃ - ハルトマンの睡眠少女', emphasis: true };
 const postEndingLines = [
+  { text: '……你怎么还不走？' },
+  { text: '后面真的没有了哦。' },
+  { text: '再点也不会有新的东西啦。' },
+  { text: '好吧，那就再陪你待一会儿。' },
+  { text: '真的、真的结束了。' }
+];
+const hiddenEndingLines = [
   { text: '.....' },
   { text: '.....' },
   { text: '.....' },
@@ -43,7 +60,14 @@ const postEndingLines = [
   { text: '......' },
   { text: '......' },
   { text: '我说......' },
-  { text: '换你来藏了好不好呀。', red: true }
+  { text: '这次该换你来藏了。', red: true }
+];
+const whispers = [
+  '你哪里也去不了。',
+  '逃不掉了吧？',
+  '我看见你了。',
+  '藏好了吗？',
+  '别躲在这里。'
 ];
 
 function cleanMarkdown(text) {
@@ -62,9 +86,15 @@ async function loadStory() {
   } catch {
     lines = [{ text: '故事好像藏得太好了。请刷新页面，再找一次吧。', emphasis: false }];
   }
+  if (pendingFirstClick) {
+    pendingFirstClick = false;
+    showNext();
+  }
 }
 
 function startMusic() {
+  musicRequested = true;
+  mutedByUser = false;
   bgm.volume = 0.62;
   try {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -81,14 +111,20 @@ function startMusic() {
   } catch {
     // Playback rate and volume still darken the track if Web Audio is unavailable.
   }
+  tryPlayMusic();
+}
+
+function tryPlayMusic() {
+  if (!musicRequested || mutedByUser || finished) return;
+  audioContext?.resume().catch(() => {});
   bgm.play().catch(() => {
     soundToggle.setAttribute('aria-pressed', 'true');
-    soundToggle.setAttribute('aria-label', '播放音乐');
+    soundToggle.setAttribute('aria-label', '重试播放音乐');
   });
 }
 
 function darkenMusic(step) {
-  const depth = Math.min(step / (postEndingLines.length - 1), 1);
+  const depth = Math.min(step / (hiddenEndingLines.length - 1), 1);
   bgm.preservesPitch = false;
   bgm.mozPreservesPitch = false;
   bgm.webkitPreservesPitch = false;
@@ -113,18 +149,104 @@ function finishStory() {
   } else {
     bgm.volume = 0;
   }
-  window.setTimeout(() => bgm.pause(), 1800);
+  fadePauseTimer = window.setTimeout(() => bgm.pause(), 1800);
+}
+
+function showWhisper() {
+  if (reviewPanel.classList.contains('open')) return;
+  if (!whispersActive) {
+    whispersActive = true;
+    document.body.classList.add('whispers-active');
+    stage.setAttribute('aria-label', '黑暗中仍有声音');
+    secretCode.disabled = false;
+    secretCode.focus({ preventScroll: true });
+  }
+  const whisper = document.createElement('span');
+  whisper.className = 'whisper';
+  whisper.textContent = whispers[whisperIndex % whispers.length];
+  whisperIndex += 1;
+  whisper.style.left = `${12 + Math.random() * 72}%`;
+  whisper.style.top = `${18 + Math.random() * 60}%`;
+  whisperLayer.append(whisper);
+  if (whisperLayer.children.length > 8) whisperLayer.firstElementChild.remove();
+  window.setTimeout(() => whisper.remove(), 7000);
+}
+
+function resetStory() {
+  window.clearTimeout(fadePauseTimer);
+  bgm.pause();
+  try { bgm.currentTime = 0; } catch {}
+  bgm.playbackRate = 1;
+  bgm.preservesPitch = true;
+  bgm.mozPreservesPitch = true;
+  bgm.webkitPreservesPitch = true;
+  bgm.volume = 0.62;
+  if (audioContext && audioFilter && audioGain) {
+    audioFilter.frequency.cancelScheduledValues(audioContext.currentTime);
+    audioFilter.frequency.setValueAtTime(18000, audioContext.currentTime);
+    audioGain.gain.cancelScheduledValues(audioContext.currentTime);
+    audioGain.gain.setValueAtTime(1, audioContext.currentTime);
+  }
+  index = -1;
+  afterIndex = -1;
+  revealIndex = 0;
+  finished = false;
+  whispersActive = false;
+  whisperIndex = 0;
+  pendingFirstClick = false;
+  musicRequested = false;
+  mutedByUser = false;
+  codeBuffer = '';
+  started = false;
+  locked = false;
+  history.length = 0;
+  reviewList.replaceChildren();
+  whisperLayer.replaceChildren();
+  secretCode.value = '';
+  secretCode.blur();
+  secretCode.disabled = true;
+  document.body.classList.remove('started', 'reveal', 'blackout', 'whispers-active');
+  story.classList.remove('active');
+  storyLine.classList.remove('red', 'emphasis', 'entering');
+  storyLine.textContent = '';
+  previousLine.textContent = '';
+  previousLine.classList.remove('visible');
+  continueHint.textContent = '点击屏幕';
+  progress.classList.remove('visible');
+  progressFill.style.width = '0%';
+  progressLabel.textContent = `00 / ${String(lines.length).padStart(2, '0')}`;
+  soundToggle.setAttribute('aria-pressed', 'false');
+  soundToggle.setAttribute('aria-label', '关闭音乐');
+  stage.setAttribute('aria-label', '点击显示下一句话');
+  stage.focus();
+}
+
+function enterCode(digit) {
+  if (!whispersActive) return;
+  codeBuffer = (codeBuffer + digit).slice(-3);
+  if (codeBuffer === '514') resetStory();
 }
 
 function showNext() {
-  if (finished || locked || !lines.length || reviewPanel.classList.contains('open')) return;
+  if (reviewPanel.classList.contains('open')) return;
+  if (finished) {
+    showWhisper();
+    return;
+  }
+  if (locked) return;
   if (!started) {
     started = true;
     document.body.classList.add('started');
     story.classList.add('active');
-    progress.classList.add('visible');
     startMusic();
+  } else if (bgm.paused && musicRequested && !mutedByUser) {
+    tryPlayMusic();
   }
+  if (!lines.length) {
+    pendingFirstClick = true;
+    return;
+  }
+  progress.classList.add('visible');
   locked = true;
   const oldText = storyLine.textContent;
   let current;
@@ -137,9 +259,12 @@ function showNext() {
       afterIndex = 0;
     } else if (afterIndex < postEndingLines.length) {
       current = postEndingLines[afterIndex];
-      if (afterIndex === 0) document.body.classList.add('reveal');
-      darkenMusic(afterIndex);
       afterIndex += 1;
+    } else if (revealIndex < hiddenEndingLines.length) {
+      current = hiddenEndingLines[revealIndex];
+      if (revealIndex === 0) document.body.classList.add('reveal');
+      darkenMusic(revealIndex);
+      revealIndex += 1;
     } else {
       finishStory();
       return;
@@ -196,21 +321,46 @@ stage.addEventListener('keydown', event => {
 soundToggle.addEventListener('click', event => {
   event.stopPropagation();
   if (bgm.paused) {
-    audioContext?.resume().catch(() => {});
-    bgm.play();
-    soundToggle.setAttribute('aria-pressed', 'false');
-    soundToggle.setAttribute('aria-label', '关闭音乐');
+    musicRequested = true;
+    mutedByUser = false;
+    tryPlayMusic();
   } else {
+    mutedByUser = true;
     bgm.pause();
-    soundToggle.setAttribute('aria-pressed', 'true');
-    soundToggle.setAttribute('aria-label', '播放音乐');
   }
+});
+bgm.addEventListener('play', () => {
+  soundToggle.setAttribute('aria-pressed', 'false');
+  soundToggle.setAttribute('aria-label', '关闭音乐');
+});
+bgm.addEventListener('pause', () => {
+  soundToggle.setAttribute('aria-pressed', 'true');
+  soundToggle.setAttribute('aria-label', '播放音乐');
+});
+bgm.addEventListener('canplay', () => {
+  if (musicRequested && !mutedByUser && bgm.paused) tryPlayMusic();
 });
 reviewButton.addEventListener('click', openReview);
 closeReviewButton.addEventListener('click', closeReview);
 reviewBackdrop.addEventListener('click', closeReview);
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && reviewPanel.classList.contains('open')) closeReview();
+  if (!whispersActive || reviewPanel.classList.contains('open') || event.target === secretCode) return;
+  if (!event.ctrlKey && !event.altKey && !event.metaKey && /^[0-9]$/.test(event.key)) {
+    enterCode(event.key);
+  }
+});
+secretCode.addEventListener('input', () => {
+  if (!whispersActive) {
+    secretCode.value = '';
+    return;
+  }
+  const value = secretCode.value.replace(/\D/g, '');
+  if (value === '514') {
+    resetStory();
+  } else {
+    secretCode.value = value.length >= 3 ? '' : value;
+  }
 });
 
 function resizeCanvas() {
