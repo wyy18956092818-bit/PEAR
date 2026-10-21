@@ -23,15 +23,27 @@ let locked = false;
 let stars = [];
 let shootingStar = null;
 let afterIndex = -1;
+let finished = false;
+let audioContext;
+let audioFilter;
+let audioGain;
 const history = [];
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const finalCredit = { text: 'BGM：まらしぃ - ハルトマンの睡眠少女', emphasis: true };
 const postEndingLines = [
-  { text: '……你怎么还不走？', emphasis: false },
-  { text: '后面真的没有了哦。', emphasis: false },
-  { text: '再点也不会有新的东西啦。', emphasis: false },
-  { text: '好吧，那就再陪你待一会儿。', emphasis: false },
-  { text: '真的、真的结束了。', emphasis: false }
+  { text: '.....' },
+  { text: '.....' },
+  { text: '.....' },
+  { text: '她没有骗你。' },
+  { text: '她真的等了你很久。' },
+  { text: '只是她忘了，心里还藏着一个人。' },
+  { text: '.....' },
+  { text: '.....' },
+  { text: '其实那个才是我哦。' },
+  { text: '......' },
+  { text: '......' },
+  { text: '我说......' },
+  { text: '换你来藏了好不好呀。', red: true }
 ];
 
 function cleanMarkdown(text) {
@@ -54,14 +66,58 @@ async function loadStory() {
 
 function startMusic() {
   bgm.volume = 0.62;
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass && !audioContext) {
+      audioContext = new AudioContextClass();
+      const source = audioContext.createMediaElementSource(bgm);
+      audioFilter = audioContext.createBiquadFilter();
+      audioFilter.type = 'lowpass';
+      audioFilter.frequency.value = 18000;
+      audioGain = audioContext.createGain();
+      source.connect(audioFilter).connect(audioGain).connect(audioContext.destination);
+    }
+    audioContext?.resume().catch(() => {});
+  } catch {
+    // Playback rate and volume still darken the track if Web Audio is unavailable.
+  }
   bgm.play().catch(() => {
     soundToggle.setAttribute('aria-pressed', 'true');
     soundToggle.setAttribute('aria-label', '播放音乐');
   });
 }
 
+function darkenMusic(step) {
+  const depth = Math.min(step / (postEndingLines.length - 1), 1);
+  bgm.preservesPitch = false;
+  bgm.mozPreservesPitch = false;
+  bgm.webkitPreservesPitch = false;
+  bgm.playbackRate = 0.94 - depth * 0.23;
+  bgm.volume = 0.56 - depth * 0.17;
+  if (audioFilter && audioContext) {
+    const frequency = 8000 * Math.pow(420 / 8000, depth);
+    audioFilter.frequency.setTargetAtTime(frequency, audioContext.currentTime, 0.5);
+  }
+}
+
+function finishStory() {
+  finished = true;
+  document.body.classList.add('blackout');
+  stage.setAttribute('aria-label', '故事结束');
+  storyLine.textContent = '';
+  previousLine.textContent = '';
+  continueHint.textContent = '';
+  progress.classList.remove('visible');
+  if (audioGain && audioContext) {
+    audioGain.gain.setTargetAtTime(0, audioContext.currentTime, 0.35);
+  } else {
+    bgm.volume = 0;
+  }
+  window.setTimeout(() => bgm.pause(), 1800);
+}
+
 function showNext() {
-  if (locked || !lines.length || reviewPanel.classList.contains('open')) return;
+  if (finished || locked || !lines.length || reviewPanel.classList.contains('open')) return;
   if (!started) {
     started = true;
     document.body.classList.add('started');
@@ -79,9 +135,14 @@ function showNext() {
     if (afterIndex < 0) {
       current = finalCredit;
       afterIndex = 0;
-    } else {
-      current = postEndingLines[afterIndex % postEndingLines.length];
+    } else if (afterIndex < postEndingLines.length) {
+      current = postEndingLines[afterIndex];
+      if (afterIndex === 0) document.body.classList.add('reveal');
+      darkenMusic(afterIndex);
       afterIndex += 1;
+    } else {
+      finishStory();
+      return;
     }
   }
   previousLine.textContent = oldText;
@@ -90,6 +151,7 @@ function showNext() {
   void storyLine.offsetWidth;
   storyLine.textContent = current.text;
   storyLine.classList.toggle('emphasis', current.emphasis);
+  storyLine.classList.toggle('red', Boolean(current.red));
   storyLine.classList.add('entering');
   history.push(current.text);
   appendReviewEntry(current.text);
@@ -134,6 +196,7 @@ stage.addEventListener('keydown', event => {
 soundToggle.addEventListener('click', event => {
   event.stopPropagation();
   if (bgm.paused) {
+    audioContext?.resume().catch(() => {});
     bgm.play();
     soundToggle.setAttribute('aria-pressed', 'false');
     soundToggle.setAttribute('aria-label', '关闭音乐');
