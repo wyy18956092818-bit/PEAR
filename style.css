@@ -49,6 +49,11 @@ body.blackout .topbar .icon-button { display: none; }
 body.blackout .topbar { opacity: .35; }
 body.blackout .topbar:hover, body.blackout .topbar:focus-within { opacity: 1; }
 body.blackout .stage { cursor: default; }
+.whisper-layer { position: fixed; z-index: 3; inset: 0; overflow: hidden; pointer-events: none; }
+.whisper { position: absolute; max-width: 13rem; color: rgba(172, 50, 64, .88); font-size: clamp(.68rem, 1.5vw, .95rem); letter-spacing: .18em; text-shadow: 0 0 9px rgba(111, 4, 19, .42); white-space: nowrap; opacity: 0; animation: whisperDrift 7s ease-out forwards; }
+.secret-code { position: fixed; z-index: 6; left: 50%; bottom: max(2rem, env(safe-area-inset-bottom)); width: 4.8rem; padding: .3rem; transform: translateX(-50%); border: 0; outline: 0; background: transparent; color: #9f3445; font: .72rem/1 ui-monospace, monospace; letter-spacing: .5em; text-align: center; opacity: 0; pointer-events: none; }
+.secret-code::placeholder { color: #5a3038; }
+body.whispers-active .secret-code { opacity: .62; pointer-events: auto; }
 .story-line.entering { animation: lineIn .72s cubic-bezier(.2,.8,.2,1) both; }
 .previous-line { min-height: 1.5em; margin: 0 0 .4rem; color: #71697e; font-size: clamp(.78rem, 1.5vw, .95rem); letter-spacing: .08em; opacity: 0; transform: translateY(.5rem); transition: .55s ease; }
 .previous-line.visible { opacity: .48; transform: translateY(0); }
@@ -76,5 +81,6 @@ body.blackout .stage { cursor: default; }
 @keyframes bars { to { height: 3px; } }
 @keyframes orbit { to { rotate: 360deg; } }
 @keyframes drift { to { transform: translate(5rem, 3rem) scale(1.1); } }
+@keyframes whisperDrift { 0% { opacity: 0; transform: translateY(8px); } 15% { opacity: .72; } 75% { opacity: .58; } 100% { opacity: 0; transform: translateY(-18px); } }
 @media (max-width: 600px) { .stage { padding-inline: 1.7rem; } .topbar { left: 0; justify-content: flex-end; } .review-button { padding-inline: .85rem; } .story-line { line-height: 1.8; } .line-wrap { min-height: 13rem; } .previous-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } .whisper { animation: none !important; opacity: .72; } }
