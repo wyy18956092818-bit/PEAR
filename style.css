@@ -37,6 +37,18 @@ body.started .topbar { opacity: 1; pointer-events: auto; }
 .story.active .quote-mark { opacity: .75; }
 .story-line { margin: 0; font-size: clamp(1.45rem, 4vw, 2.85rem); font-weight: 500; line-height: 1.7; letter-spacing: .08em; text-wrap: balance; }
 .story-line.emphasis { color: #fff6fd; text-shadow: 0 0 18px rgba(255,130,200,.3); }
+.story-line.red { color: #bb2139; text-shadow: 0 0 15px rgba(162, 0, 32, .36); }
+body.reveal { background: #030305; }
+body.reveal .nebula, body.reveal .story.active .quote-mark { opacity: 0; }
+body.reveal #stars { opacity: .2; transition: opacity 5s ease; }
+body.reveal .previous-line { opacity: 0; }
+body.reveal .progress-area { opacity: 0; }
+body.blackout { background: #000; }
+body.blackout #stars, body.blackout .story, body.blackout .nebula, body.blackout .progress-area { opacity: 0; pointer-events: none; }
+body.blackout .topbar .icon-button { display: none; }
+body.blackout .topbar { opacity: .35; }
+body.blackout .topbar:hover, body.blackout .topbar:focus-within { opacity: 1; }
+body.blackout .stage { cursor: default; }
 .story-line.entering { animation: lineIn .72s cubic-bezier(.2,.8,.2,1) both; }
 .previous-line { min-height: 1.5em; margin: 0 0 .4rem; color: #71697e; font-size: clamp(.78rem, 1.5vw, .95rem); letter-spacing: .08em; opacity: 0; transform: translateY(.5rem); transition: .55s ease; }
 .previous-line.visible { opacity: .48; transform: translateY(0); }
