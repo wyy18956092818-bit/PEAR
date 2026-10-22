@@ -72,6 +72,8 @@ body.whispers-active .secret-code { opacity: .62; pointer-events: auto; }
 .review-line { flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; line-height: inherit; text-align: left; cursor: pointer; }
 .review-line:not(:disabled):hover, .review-entry.selected .review-line { color: #f2eaf8; }
 .review-line:disabled { cursor: default; }
+.review-entry.corrupted .review-line { color: #796d80; font-family: ui-monospace, monospace; letter-spacing: .16em; }
+.review-entry.corrupted:last-child .review-line { color: #bb8295; }
 .review-jump { display: none; flex: none; padding: .38rem .65rem; border: 1px solid rgba(255,130,200,.38); border-radius: 999px; background: rgba(255,130,200,.09); color: #ffd1e9; font: .68rem/1 ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
 .review-entry.selected .review-jump { display: block; }
 .review-jump:hover { background: rgba(255,130,200,.2); }
