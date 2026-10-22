@@ -353,6 +353,7 @@ function openReview() {
     reviewTauntTimer = window.setTimeout(() => reviewTaunt.classList.remove('visible'), 3000);
     return;
   }
+  if (document.body.classList.contains('reveal')) return;
   if (!history.length) reviewList.innerHTML = '<p class="review-empty">还没有可以回顾的内容。</p>';
   reviewBackdrop.hidden = false;
   reviewPanel.classList.add('open');
