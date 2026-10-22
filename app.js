@@ -31,6 +31,7 @@ let whispersActive = false;
 let whisperIndex = 0;
 let pendingFirstClick = false;
 let musicRequested = false;
+let reunionMode = false;
 let reunionPending = false;
 let reunionFrozen = false;
 let fadePauseTimer;
@@ -43,6 +44,7 @@ const history = [];
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const finalCredit = { text: 'BGM：まらしぃ - ハルトマンの睡眠少女', emphasis: true };
 const reunionLine = { text: '我们还会再见的...' };
+const reunionHeart = { text: '❤', red: true, heart: true };
 const postEndingLines = [
   { text: '……你怎么还不走？' },
   { text: '后面真的没有了哦。' },
@@ -200,6 +202,7 @@ function resetStory() {
   whisperIndex = 0;
   pendingFirstClick = false;
   musicRequested = false;
+  reunionMode = true;
   reunionPending = true;
   reunionFrozen = false;
   codeBuffer = '';
@@ -213,7 +216,7 @@ function resetStory() {
   secretCode.disabled = true;
   document.body.classList.remove('started', 'reveal', 'blackout', 'whispers-active', 'reunion-frozen');
   story.classList.remove('active');
-  storyLine.classList.remove('red', 'emphasis', 'entering');
+  storyLine.classList.remove('red', 'heart', 'emphasis', 'entering');
   storyLine.textContent = '';
   previousLine.textContent = '';
   previousLine.classList.remove('visible');
@@ -257,9 +260,11 @@ function showNext() {
   let current;
   if (reunionPending) {
     reunionPending = false;
+    current = reunionLine;
+  } else if (reunionMode) {
     reunionFrozen = true;
     document.body.classList.add('reunion-frozen');
-    current = reunionLine;
+    current = reunionHeart;
   } else if (index < lines.length - 1) {
     index += 1;
     current = lines[index];
@@ -280,18 +285,20 @@ function showNext() {
       return;
     }
   }
-  previousLine.textContent = oldText;
-  previousLine.classList.toggle('visible', Boolean(oldText));
+  previousLine.textContent = current.heart ? '' : oldText;
+  previousLine.classList.toggle('visible', Boolean(previousLine.textContent));
   storyLine.classList.remove('entering');
   void storyLine.offsetWidth;
   storyLine.textContent = current.text;
   storyLine.classList.toggle('emphasis', current.emphasis);
   storyLine.classList.toggle('red', Boolean(current.red));
+  storyLine.classList.toggle('heart', Boolean(current.heart));
   storyLine.classList.add('entering');
-  const moment = { ...current, index, afterIndex, revealIndex, reunionPending };
-  history.push(moment);
-  appendReviewEntry(moment, history.length - 1);
-  if (reunionFrozen) reviewList.querySelectorAll('.review-line').forEach(button => { button.disabled = true; });
+  if (!reunionMode) {
+    const moment = { ...current, index, afterIndex, revealIndex };
+    history.push(moment);
+    appendReviewEntry(moment, history.length - 1);
+  }
   continueHint.textContent = index >= lines.length - 1 ? '再点一下' : '点击 · 继续';
   progressFill.style.width = `${((index + 1) / lines.length) * 100}%`;
   progressLabel.textContent = index >= lines.length - 1 ? 'END' : `${String(index + 1).padStart(2, '0')} / ${String(lines.length).padStart(2, '0')}`;
@@ -311,7 +318,7 @@ function appendReviewEntry(moment, position) {
   const lineButton = document.createElement('button');
   lineButton.className = 'review-line';
   lineButton.type = 'button';
-  lineButton.disabled = reunionPending || reunionFrozen;
+  lineButton.disabled = reunionMode;
   lineButton.textContent = moment.text;
   lineButton.setAttribute('aria-label', `选择：${moment.text}`);
   lineButton.addEventListener('click', () => {
@@ -330,17 +337,17 @@ function appendReviewEntry(moment, position) {
 }
 
 function jumpToHistory(position) {
-  if (finished || reunionPending || reunionFrozen || position < 0 || position >= history.length) return;
+  if (finished || reunionMode || position < 0 || position >= history.length) return;
   const moment = history[position];
   index = moment.index;
   afterIndex = moment.afterIndex;
   revealIndex = moment.revealIndex;
-  reunionPending = moment.reunionPending;
   locked = false;
   document.body.classList.toggle('reveal', revealIndex > 0);
   storyLine.textContent = moment.text;
   storyLine.classList.toggle('emphasis', Boolean(moment.emphasis));
   storyLine.classList.toggle('red', Boolean(moment.red));
+  storyLine.classList.toggle('heart', Boolean(moment.heart));
   storyLine.classList.remove('entering');
   previousLine.textContent = position > 0 ? history[position - 1].text : '';
   previousLine.classList.toggle('visible', position > 0);
