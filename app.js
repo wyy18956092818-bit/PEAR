@@ -8,7 +8,6 @@ const progress = document.querySelector('.progress-area');
 const progressFill = document.querySelector('#progressFill');
 const progressLabel = document.querySelector('#progressLabel');
 const bgm = document.querySelector('#bgm');
-const soundToggle = document.querySelector('#soundToggle');
 const continueHint = document.querySelector('#continueHint');
 const reviewButton = document.querySelector('#reviewButton');
 const reviewTaunt = document.querySelector('#reviewTaunt');
@@ -32,7 +31,7 @@ let whispersActive = false;
 let whisperIndex = 0;
 let pendingFirstClick = false;
 let musicRequested = false;
-let mutedByUser = false;
+let reunionPending = false;
 let fadePauseTimer;
 let reviewTauntTimer;
 let codeBuffer = '';
@@ -42,6 +41,7 @@ let audioGain;
 const history = [];
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const finalCredit = { text: 'BGM：まらしぃ - ハルトマンの睡眠少女', emphasis: true };
+const reunionLine = { text: '我们还会再见的...' };
 const postEndingLines = [
   { text: '……你怎么还不走？' },
   { text: '后面真的没有了哦。' },
@@ -96,7 +96,6 @@ async function loadStory() {
 
 function startMusic() {
   musicRequested = true;
-  mutedByUser = false;
   bgm.volume = 0.62;
   try {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -117,12 +116,23 @@ function startMusic() {
 }
 
 function tryPlayMusic() {
-  if (!musicRequested || mutedByUser || finished) return;
+  if (!musicRequested || finished) return;
   audioContext?.resume().catch(() => {});
-  bgm.play().catch(() => {
-    soundToggle.setAttribute('aria-pressed', 'true');
-    soundToggle.setAttribute('aria-label', '重试播放音乐');
-  });
+  bgm.play().catch(() => {});
+}
+
+function restoreNormalMusic() {
+  bgm.playbackRate = 1;
+  bgm.preservesPitch = true;
+  bgm.mozPreservesPitch = true;
+  bgm.webkitPreservesPitch = true;
+  bgm.volume = 0.62;
+  if (audioContext && audioFilter && audioGain) {
+    audioFilter.frequency.cancelScheduledValues(audioContext.currentTime);
+    audioFilter.frequency.setValueAtTime(18000, audioContext.currentTime);
+    audioGain.gain.cancelScheduledValues(audioContext.currentTime);
+    audioGain.gain.setValueAtTime(1, audioContext.currentTime);
+  }
 }
 
 function darkenMusic(step) {
@@ -180,17 +190,7 @@ function resetStory() {
   reviewTaunt.classList.remove('visible');
   bgm.pause();
   try { bgm.currentTime = 0; } catch {}
-  bgm.playbackRate = 1;
-  bgm.preservesPitch = true;
-  bgm.mozPreservesPitch = true;
-  bgm.webkitPreservesPitch = true;
-  bgm.volume = 0.62;
-  if (audioContext && audioFilter && audioGain) {
-    audioFilter.frequency.cancelScheduledValues(audioContext.currentTime);
-    audioFilter.frequency.setValueAtTime(18000, audioContext.currentTime);
-    audioGain.gain.cancelScheduledValues(audioContext.currentTime);
-    audioGain.gain.setValueAtTime(1, audioContext.currentTime);
-  }
+  restoreNormalMusic();
   index = -1;
   afterIndex = -1;
   revealIndex = 0;
@@ -199,7 +199,7 @@ function resetStory() {
   whisperIndex = 0;
   pendingFirstClick = false;
   musicRequested = false;
-  mutedByUser = false;
+  reunionPending = true;
   codeBuffer = '';
   started = false;
   locked = false;
@@ -219,8 +219,6 @@ function resetStory() {
   progress.classList.remove('visible');
   progressFill.style.width = '0%';
   progressLabel.textContent = `00 / ${String(lines.length).padStart(2, '0')}`;
-  soundToggle.setAttribute('aria-pressed', 'false');
-  soundToggle.setAttribute('aria-label', '关闭音乐');
   stage.setAttribute('aria-label', '点击显示下一句话');
   stage.focus();
 }
@@ -243,7 +241,7 @@ function showNext() {
     document.body.classList.add('started');
     story.classList.add('active');
     startMusic();
-  } else if (bgm.paused && musicRequested && !mutedByUser) {
+  } else if (bgm.paused && musicRequested) {
     tryPlayMusic();
   }
   if (!lines.length) {
@@ -254,7 +252,10 @@ function showNext() {
   locked = true;
   const oldText = storyLine.textContent;
   let current;
-  if (index < lines.length - 1) {
+  if (reunionPending) {
+    reunionPending = false;
+    current = reunionLine;
+  } else if (index < lines.length - 1) {
     index += 1;
     current = lines[index];
   } else {
@@ -282,22 +283,65 @@ function showNext() {
   storyLine.classList.toggle('emphasis', current.emphasis);
   storyLine.classList.toggle('red', Boolean(current.red));
   storyLine.classList.add('entering');
-  history.push(current.text);
-  appendReviewEntry(current.text);
+  const moment = { ...current, index, afterIndex, revealIndex, reunionPending };
+  history.push(moment);
+  appendReviewEntry(moment, history.length - 1);
   continueHint.textContent = index >= lines.length - 1 ? '再点一下' : '点击 · 继续';
   progressFill.style.width = `${((index + 1) / lines.length) * 100}%`;
   progressLabel.textContent = index >= lines.length - 1 ? 'END' : `${String(index + 1).padStart(2, '0')} / ${String(lines.length).padStart(2, '0')}`;
   window.setTimeout(() => { locked = false; }, reducedMotion ? 20 : 420);
 }
 
-function appendReviewEntry(text) {
+function appendReviewEntry(moment, position) {
   const empty = reviewList.querySelector('.review-empty');
   if (empty) empty.remove();
-  const entry = document.createElement('p');
+  const entry = document.createElement('div');
   entry.className = 'review-entry';
-  entry.textContent = text;
+  const lineButton = document.createElement('button');
+  lineButton.className = 'review-line';
+  lineButton.type = 'button';
+  lineButton.textContent = moment.text;
+  lineButton.setAttribute('aria-label', `选择：${moment.text}`);
+  lineButton.addEventListener('click', () => {
+    reviewList.querySelector('.review-entry.selected')?.classList.remove('selected');
+    entry.classList.add('selected');
+  });
+  const jumpButton = document.createElement('button');
+  jumpButton.className = 'review-jump';
+  jumpButton.type = 'button';
+  jumpButton.textContent = '跳转';
+  jumpButton.setAttribute('aria-label', `跳转到：${moment.text}`);
+  jumpButton.addEventListener('click', () => jumpToHistory(position));
+  entry.append(lineButton, jumpButton);
   reviewList.append(entry);
   reviewList.scrollTop = reviewList.scrollHeight;
+}
+
+function jumpToHistory(position) {
+  if (finished || position < 0 || position >= history.length) return;
+  const moment = history[position];
+  index = moment.index;
+  afterIndex = moment.afterIndex;
+  revealIndex = moment.revealIndex;
+  reunionPending = moment.reunionPending;
+  locked = false;
+  document.body.classList.toggle('reveal', revealIndex > 0);
+  storyLine.textContent = moment.text;
+  storyLine.classList.toggle('emphasis', Boolean(moment.emphasis));
+  storyLine.classList.toggle('red', Boolean(moment.red));
+  storyLine.classList.remove('entering');
+  previousLine.textContent = position > 0 ? history[position - 1].text : '';
+  previousLine.classList.toggle('visible', position > 0);
+  continueHint.textContent = index >= lines.length - 1 ? '再点一下' : '点击 · 继续';
+  progressFill.style.width = `${((index + 1) / lines.length) * 100}%`;
+  progressLabel.textContent = index >= lines.length - 1 ? 'END' : `${String(index + 1).padStart(2, '0')} / ${String(lines.length).padStart(2, '0')}`;
+  if (revealIndex > 0) darkenMusic(revealIndex - 1);
+  else restoreNormalMusic();
+  if (bgm.paused && musicRequested) tryPlayMusic();
+  history.length = position + 1;
+  reviewList.replaceChildren();
+  history.forEach(appendReviewEntry);
+  closeReview();
 }
 
 function openReview() {
@@ -330,27 +374,8 @@ stage.addEventListener('keydown', event => {
     showNext();
   }
 });
-soundToggle.addEventListener('click', event => {
-  event.stopPropagation();
-  if (bgm.paused) {
-    musicRequested = true;
-    mutedByUser = false;
-    tryPlayMusic();
-  } else {
-    mutedByUser = true;
-    bgm.pause();
-  }
-});
-bgm.addEventListener('play', () => {
-  soundToggle.setAttribute('aria-pressed', 'false');
-  soundToggle.setAttribute('aria-label', '关闭音乐');
-});
-bgm.addEventListener('pause', () => {
-  soundToggle.setAttribute('aria-pressed', 'true');
-  soundToggle.setAttribute('aria-label', '播放音乐');
-});
 bgm.addEventListener('canplay', () => {
-  if (musicRequested && !mutedByUser && bgm.paused) tryPlayMusic();
+  if (musicRequested && bgm.paused) tryPlayMusic();
 });
 reviewButton.addEventListener('click', openReview);
 closeReviewButton.addEventListener('click', closeReview);
