@@ -39,6 +39,7 @@ body.reveal .nebula, body.reveal .story.active .quote-mark { opacity: 0; }
 body.reveal #stars { opacity: .2; transition: opacity 5s ease; }
 body.reveal .previous-line { opacity: 0; }
 body.reveal .progress-area { opacity: 0; }
+body.reveal:not(.blackout) .review-button { opacity: .45; cursor: default; }
 body.blackout { background: #000; }
 body.blackout #stars, body.blackout .story, body.blackout .nebula, body.blackout .progress-area { opacity: 0; pointer-events: none; }
 body.blackout .topbar { opacity: .35; }
