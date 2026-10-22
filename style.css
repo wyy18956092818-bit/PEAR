@@ -45,6 +45,7 @@ body.blackout #stars, body.blackout .story, body.blackout .nebula, body.blackout
 body.blackout .topbar { opacity: .35; }
 body.blackout .topbar:hover, body.blackout .topbar:focus-within { opacity: 1; }
 body.blackout .stage { cursor: default; }
+body.reunion-frozen .stage { cursor: default; }
 .whisper-layer { position: fixed; z-index: 3; inset: 0; overflow: hidden; pointer-events: none; }
 .whisper { position: absolute; max-width: 13rem; color: rgba(172, 50, 64, .88); font-size: clamp(.68rem, 1.5vw, .95rem); letter-spacing: .18em; text-shadow: 0 0 9px rgba(111, 4, 19, .42); white-space: nowrap; opacity: 0; animation: whisperDrift 7s ease-out forwards; }
 .secret-code { position: fixed; z-index: 6; left: 50%; bottom: max(2rem, env(safe-area-inset-bottom)); width: 4.8rem; padding: .3rem; transform: translateX(-50%); border: 0; outline: 0; background: transparent; color: #9f3445; font: .72rem/1 ui-monospace, monospace; letter-spacing: .5em; text-align: center; opacity: 0; pointer-events: none; }
@@ -68,7 +69,8 @@ body.whispers-active .secret-code { opacity: .62; pointer-events: auto; }
 .review-list { height: calc(100% - 5rem); overflow-y: auto; padding: 1.4rem 1.8rem 4rem; scrollbar-width: thin; scrollbar-color: rgba(255,130,200,.35) transparent; }
 .review-entry { position: relative; display: flex; align-items: center; gap: .5rem; margin: 0; padding: .75rem 0 .75rem 1.3rem; color: #9b92a8; font-size: .92rem; line-height: 1.8; letter-spacing: .05em; }
 .review-line { flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; line-height: inherit; text-align: left; cursor: pointer; }
-.review-line:hover, .review-entry.selected .review-line { color: #f2eaf8; }
+.review-line:not(:disabled):hover, .review-entry.selected .review-line { color: #f2eaf8; }
+.review-line:disabled { cursor: default; }
 .review-jump { display: none; flex: none; padding: .38rem .65rem; border: 1px solid rgba(255,130,200,.38); border-radius: 999px; background: rgba(255,130,200,.09); color: #ffd1e9; font: .68rem/1 ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
 .review-entry.selected .review-jump { display: block; }
 .review-jump:hover { background: rgba(255,130,200,.2); }
