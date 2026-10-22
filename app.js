@@ -67,6 +67,21 @@ const hiddenEndingLines = [
   { text: '我说......' },
   { text: '这次该换你来藏了。', red: true }
 ];
+const corruptedReviewLines = [
+  '�▒░▓ 0x3F',
+  '▒�╳/�░',
+  '� ��� ░▒',
+  '�滈▒▓�',
+  '╳░�.?▒',
+  '▓�▒��/░',
+  '�̷▒░?�',
+  '░▓╳�▒',
+  '�▒?▓�',
+  '▒▓�/╳░',
+  '��▒░▓',
+  '╳�░//▒',
+  '▓▒�▯�'
+];
 const whispers = [
   '你哪里也去不了。',
   '逃不掉了吧？',
@@ -276,7 +291,7 @@ function showNext() {
       current = postEndingLines[afterIndex];
       afterIndex += 1;
     } else if (revealIndex < hiddenEndingLines.length) {
-      current = hiddenEndingLines[revealIndex];
+      current = { ...hiddenEndingLines[revealIndex], reviewText: corruptedReviewLines[revealIndex] };
       if (revealIndex === 0) document.body.classList.add('reveal');
       darkenMusic(revealIndex);
       revealIndex += 1;
@@ -315,12 +330,14 @@ function appendReviewEntry(moment, position) {
   if (empty) empty.remove();
   const entry = document.createElement('div');
   entry.className = 'review-entry';
+  if (moment.reviewText) entry.classList.add('corrupted');
+  const reviewText = moment.reviewText ?? moment.text;
   const lineButton = document.createElement('button');
   lineButton.className = 'review-line';
   lineButton.type = 'button';
   lineButton.disabled = reunionMode;
-  lineButton.textContent = moment.text;
-  lineButton.setAttribute('aria-label', `选择：${moment.text}`);
+  lineButton.textContent = reviewText;
+  lineButton.setAttribute('aria-label', `选择：${reviewText}`);
   lineButton.addEventListener('click', () => {
     reviewList.querySelector('.review-entry.selected')?.classList.remove('selected');
     entry.classList.add('selected');
@@ -329,7 +346,7 @@ function appendReviewEntry(moment, position) {
   jumpButton.className = 'review-jump';
   jumpButton.type = 'button';
   jumpButton.textContent = '跳转';
-  jumpButton.setAttribute('aria-label', `跳转到：${moment.text}`);
+  jumpButton.setAttribute('aria-label', `跳转到：${reviewText}`);
   jumpButton.addEventListener('click', () => jumpToHistory(position));
   entry.append(lineButton, jumpButton);
   reviewList.append(entry);
