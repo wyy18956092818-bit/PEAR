@@ -32,6 +32,7 @@ let whisperIndex = 0;
 let pendingFirstClick = false;
 let musicRequested = false;
 let reunionPending = false;
+let reunionFrozen = false;
 let fadePauseTimer;
 let reviewTauntTimer;
 let codeBuffer = '';
@@ -200,16 +201,17 @@ function resetStory() {
   pendingFirstClick = false;
   musicRequested = false;
   reunionPending = true;
+  reunionFrozen = false;
   codeBuffer = '';
   started = false;
   locked = false;
-  history.length = 0;
-  reviewList.replaceChildren();
+  reviewList.querySelector('.review-entry.selected')?.classList.remove('selected');
+  reviewList.querySelectorAll('.review-line').forEach(button => { button.disabled = true; });
   whisperLayer.replaceChildren();
   secretCode.value = '';
   secretCode.blur();
   secretCode.disabled = true;
-  document.body.classList.remove('started', 'reveal', 'blackout', 'whispers-active');
+  document.body.classList.remove('started', 'reveal', 'blackout', 'whispers-active', 'reunion-frozen');
   story.classList.remove('active');
   storyLine.classList.remove('red', 'emphasis', 'entering');
   storyLine.textContent = '';
@@ -235,6 +237,7 @@ function showNext() {
     showWhisper();
     return;
   }
+  if (reunionFrozen) return;
   if (locked) return;
   if (!started) {
     started = true;
@@ -254,6 +257,8 @@ function showNext() {
   let current;
   if (reunionPending) {
     reunionPending = false;
+    reunionFrozen = true;
+    document.body.classList.add('reunion-frozen');
     current = reunionLine;
   } else if (index < lines.length - 1) {
     index += 1;
@@ -286,9 +291,15 @@ function showNext() {
   const moment = { ...current, index, afterIndex, revealIndex, reunionPending };
   history.push(moment);
   appendReviewEntry(moment, history.length - 1);
+  if (reunionFrozen) reviewList.querySelectorAll('.review-line').forEach(button => { button.disabled = true; });
   continueHint.textContent = index >= lines.length - 1 ? '再点一下' : '点击 · 继续';
   progressFill.style.width = `${((index + 1) / lines.length) * 100}%`;
   progressLabel.textContent = index >= lines.length - 1 ? 'END' : `${String(index + 1).padStart(2, '0')} / ${String(lines.length).padStart(2, '0')}`;
+  if (reunionFrozen) {
+    continueHint.textContent = '';
+    progress.classList.remove('visible');
+    stage.setAttribute('aria-label', '故事到此为止');
+  }
   window.setTimeout(() => { locked = false; }, reducedMotion ? 20 : 420);
 }
 
@@ -300,6 +311,7 @@ function appendReviewEntry(moment, position) {
   const lineButton = document.createElement('button');
   lineButton.className = 'review-line';
   lineButton.type = 'button';
+  lineButton.disabled = reunionPending || reunionFrozen;
   lineButton.textContent = moment.text;
   lineButton.setAttribute('aria-label', `选择：${moment.text}`);
   lineButton.addEventListener('click', () => {
@@ -318,7 +330,7 @@ function appendReviewEntry(moment, position) {
 }
 
 function jumpToHistory(position) {
-  if (finished || position < 0 || position >= history.length) return;
+  if (finished || reunionPending || reunionFrozen || position < 0 || position >= history.length) return;
   const moment = history[position];
   index = moment.index;
   afterIndex = moment.afterIndex;
