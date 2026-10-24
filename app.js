@@ -17,6 +17,7 @@ const closeReviewButton = document.querySelector('#closeReview');
 const reviewList = document.querySelector('#reviewList');
 const whisperLayer = document.querySelector('#whisperLayer');
 const secretCode = document.querySelector('#secretCode');
+const whiteVeil = document.querySelector('#whiteVeil');
 
 let lines = [];
 let index = -1;
@@ -34,8 +35,10 @@ let musicRequested = false;
 let reunionMode = false;
 let reunionPending = false;
 let reunionFrozen = false;
+let whiteTransitioning = false;
 let fadePauseTimer;
 let reviewTauntTimer;
+let whiteTransitionTimer;
 let codeBuffer = '';
 let audioContext;
 let audioFilter;
@@ -44,7 +47,8 @@ const history = [];
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const finalCredit = { text: 'BGM：まらしぃ - ハルトマンの睡眠少女', emphasis: true };
 const reunionLine = { text: '我们还会再见的...' };
-const reunionHeart = { text: '❤', red: true, heart: true };
+const reunionHeart = { text: '❤', heart: true };
+const endingVideoUrl = 'https://www.bilibili.com/video/BV13qUmBVEU6/?vd_source=e0bb9b6e340daaa5c7207de66994127a';
 const postEndingLines = [
   { text: '……你怎么还不走？' },
   { text: '后面真的没有了哦。' },
@@ -134,7 +138,7 @@ function startMusic() {
 }
 
 function tryPlayMusic() {
-  if (!musicRequested || finished) return;
+  if (!musicRequested || finished || reunionMode) return;
   audioContext?.resume().catch(() => {});
   bgm.play().catch(() => {});
 }
@@ -202,13 +206,12 @@ function showWhisper() {
   window.setTimeout(() => whisper.remove(), 7000);
 }
 
-function resetStory() {
+function beginWhiteEnding() {
   window.clearTimeout(fadePauseTimer);
   window.clearTimeout(reviewTauntTimer);
+  window.clearTimeout(whiteTransitionTimer);
   reviewTaunt.classList.remove('visible');
   bgm.pause();
-  try { bgm.currentTime = 0; } catch {}
-  restoreNormalMusic();
   index = -1;
   afterIndex = -1;
   revealIndex = 0;
@@ -220,6 +223,7 @@ function resetStory() {
   reunionMode = true;
   reunionPending = true;
   reunionFrozen = false;
+  whiteTransitioning = true;
   codeBuffer = '';
   started = false;
   locked = false;
@@ -230,27 +234,34 @@ function resetStory() {
   secretCode.blur();
   secretCode.disabled = true;
   document.body.classList.remove('started', 'reveal', 'blackout', 'whispers-active', 'reunion-frozen');
+  void whiteVeil.offsetWidth;
+  document.body.classList.add('white-ending');
   story.classList.remove('active');
   storyLine.classList.remove('red', 'heart', 'emphasis', 'entering');
   storyLine.textContent = '';
   previousLine.textContent = '';
   previousLine.classList.remove('visible');
-  continueHint.textContent = '点击屏幕';
+  continueHint.textContent = '';
   progress.classList.remove('visible');
   progressFill.style.width = '0%';
   progressLabel.textContent = `00 / ${String(lines.length).padStart(2, '0')}`;
-  stage.setAttribute('aria-label', '点击显示下一句话');
+  stage.setAttribute('aria-label', '画面正在变白');
   stage.focus();
+  whiteTransitionTimer = window.setTimeout(() => {
+    whiteTransitioning = false;
+    showNext();
+  }, reducedMotion ? 80 : 2200);
 }
 
 function enterCode(digit) {
   if (!whispersActive) return;
   codeBuffer = (codeBuffer + digit).slice(-3);
-  if (codeBuffer === '514') resetStory();
+  if (codeBuffer === '514') beginWhiteEnding();
 }
 
 function showNext() {
   if (reviewPanel.classList.contains('open')) return;
+  if (whiteTransitioning) return;
   if (finished) {
     showWhisper();
     return;
@@ -261,8 +272,8 @@ function showNext() {
     started = true;
     document.body.classList.add('started');
     story.classList.add('active');
-    startMusic();
-  } else if (bgm.paused && musicRequested) {
+    if (!reunionMode) startMusic();
+  } else if (!reunionMode && bgm.paused && musicRequested) {
     tryPlayMusic();
   }
   if (!lines.length) {
@@ -275,6 +286,7 @@ function showNext() {
   let current;
   if (reunionPending) {
     reunionPending = false;
+    stage.setAttribute('aria-label', '点击显示最后的画面');
     current = reunionLine;
   } else if (reunionMode) {
     reunionFrozen = true;
@@ -305,6 +317,14 @@ function showNext() {
   storyLine.classList.remove('entering');
   void storyLine.offsetWidth;
   storyLine.textContent = current.text;
+  if (current.heart) {
+    const link = document.createElement('a');
+    link.className = 'heart-link';
+    link.href = endingVideoUrl;
+    link.textContent = current.text;
+    link.setAttribute('aria-label', '打开后续视频');
+    storyLine.replaceChildren(link);
+  }
   storyLine.classList.toggle('emphasis', current.emphasis);
   storyLine.classList.toggle('red', Boolean(current.red));
   storyLine.classList.toggle('heart', Boolean(current.heart));
@@ -431,7 +451,7 @@ secretCode.addEventListener('input', () => {
   }
   const value = secretCode.value.replace(/\D/g, '');
   if (value === '514') {
-    resetStory();
+    beginWhiteEnding();
   } else {
     secretCode.value = value.length >= 3 ? '' : value;
   }
