@@ -426,6 +426,7 @@ function closeReview() {
 
 stage.addEventListener('click', showNext);
 stage.addEventListener('keydown', event => {
+  if (event.target.closest('a')) return;
   if (['Enter', ' ', 'ArrowRight'].includes(event.key)) {
     event.preventDefault();
     showNext();
