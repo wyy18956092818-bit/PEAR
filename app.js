@@ -1,7 +1,6 @@
 const canvas = document.querySelector('#stars');
 const keyGate = document.querySelector('#keyGate');
 const heartKey = document.querySelector('#heartKey');
-const keyMessage = document.querySelector('#keyMessage');
 const ctx = canvas.getContext('2d');
 const stage = document.querySelector('#stage');
 const story = document.querySelector('#story');
@@ -437,20 +436,24 @@ keyGate.addEventListener('submit', event => {
   if (heartKey.value === '1115') {
     unlocking = true;
     heartKey.disabled = true;
-    keyGate.querySelector('button').disabled = true;
-    keyMessage.textContent = '已解锁';
     keyGate.classList.add('unlocking');
     window.setTimeout(() => {
       unlocked = true;
       keyGate.hidden = true;
       document.body.classList.add('unlocked');
       stage.focus();
-    }, reducedMotion ? 0 : 1500);
+    }, reducedMotion ? 0 : 3200);
   } else {
-    keyMessage.textContent = '钥匙不对。';
+    keyGate.classList.remove('wrong');
+    void keyGate.offsetWidth;
+    keyGate.classList.add('wrong');
     heartKey.value = '';
     heartKey.focus();
   }
+});
+heartKey.addEventListener('input', () => {
+  heartKey.value = heartKey.value.replace(/\D/g, '');
+  if (heartKey.value.length === 4) keyGate.requestSubmit();
 });
 heartKey.focus();
 stage.addEventListener('keydown', event => {
