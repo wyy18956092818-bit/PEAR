@@ -24,6 +24,7 @@ const whiteVeil = document.querySelector('#whiteVeil');
 
 let lines = [];
 let unlocked = false;
+let unlocking = false;
 let index = -1;
 let started = false;
 let locked = false;
@@ -432,11 +433,19 @@ function closeReview() {
 stage.addEventListener('click', showNext);
 keyGate.addEventListener('submit', event => {
   event.preventDefault();
+  if (unlocking) return;
   if (heartKey.value === '1115') {
-    unlocked = true;
-    keyGate.hidden = true;
-    document.body.classList.add('unlocked');
-    stage.focus();
+    unlocking = true;
+    heartKey.disabled = true;
+    keyGate.querySelector('button').disabled = true;
+    keyMessage.textContent = '已解锁';
+    keyGate.classList.add('unlocking');
+    window.setTimeout(() => {
+      unlocked = true;
+      keyGate.hidden = true;
+      document.body.classList.add('unlocked');
+      stage.focus();
+    }, reducedMotion ? 0 : 1500);
   } else {
     keyMessage.textContent = '钥匙不对。';
     heartKey.value = '';
