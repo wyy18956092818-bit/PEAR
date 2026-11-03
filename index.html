@@ -9,6 +9,12 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
+    <form id="keyGate" class="key-gate" aria-label="心之钥">
+      <label for="heartKey">心之钥</label>
+      <input id="heartKey" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="输入四位数字" aria-describedby="keyMessage" />
+      <button type="submit">进入</button>
+      <p id="keyMessage" role="status" aria-live="polite"></p>
+    </form>
     <canvas id="stars" aria-hidden="true"></canvas>
     <div class="nebula nebula-a" aria-hidden="true"></div>
     <div class="nebula nebula-b" aria-hidden="true"></div>
