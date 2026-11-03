@@ -1,4 +1,7 @@
 const canvas = document.querySelector('#stars');
+const keyGate = document.querySelector('#keyGate');
+const heartKey = document.querySelector('#heartKey');
+const keyMessage = document.querySelector('#keyMessage');
 const ctx = canvas.getContext('2d');
 const stage = document.querySelector('#stage');
 const story = document.querySelector('#story');
@@ -20,6 +23,7 @@ const secretCode = document.querySelector('#secretCode');
 const whiteVeil = document.querySelector('#whiteVeil');
 
 let lines = [];
+let unlocked = false;
 let index = -1;
 let started = false;
 let locked = false;
@@ -260,6 +264,7 @@ function enterCode(digit) {
 }
 
 function showNext() {
+  if (!unlocked) return;
   if (reviewPanel.classList.contains('open')) return;
   if (whiteTransitioning) return;
   if (finished) {
@@ -425,6 +430,20 @@ function closeReview() {
 }
 
 stage.addEventListener('click', showNext);
+keyGate.addEventListener('submit', event => {
+  event.preventDefault();
+  if (heartKey.value === '1115') {
+    unlocked = true;
+    keyGate.hidden = true;
+    document.body.classList.add('unlocked');
+    stage.focus();
+  } else {
+    keyMessage.textContent = '钥匙不对。';
+    heartKey.value = '';
+    heartKey.focus();
+  }
+});
+heartKey.focus();
 stage.addEventListener('keydown', event => {
   if (event.target.closest('a')) return;
   if (['Enter', ' ', 'ArrowRight'].includes(event.key)) {
