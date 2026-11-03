@@ -14,6 +14,14 @@ body {
   font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
   user-select: none;
 }
+.key-gate { position: fixed; z-index: 20; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 2rem; background: #000; color: #eee; font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif; }
+.key-gate[hidden] { display: none; }
+.key-gate label { font-size: clamp(1.3rem, 4vw, 2rem); letter-spacing: .24em; }
+.key-gate input { width: min(16rem, 80vw); padding: .8rem 1rem; border: 1px solid #555; border-radius: .35rem; outline: none; background: #080808; color: #fff; font: 1rem/1.3 ui-monospace, monospace; text-align: center; letter-spacing: .3em; }
+.key-gate input:focus { border-color: #aaa; }
+.key-gate button { padding: .65rem 2rem; border: 1px solid #777; border-radius: 999px; background: transparent; color: #eee; font: .8rem/1 ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
+.key-gate button:hover { background: #222; }
+.key-gate p { min-height: 1.3em; margin: 0; color: #b65b66; font-size: .78rem; }
 #stars { position: fixed; inset: 0; width: 100%; height: 100%; }
 .nebula { position: fixed; width: 42rem; height: 42rem; border-radius: 50%; filter: blur(90px); opacity: .12; pointer-events: none; animation: drift 16s ease-in-out infinite alternate; }
 .nebula-a { left: -20rem; top: -19rem; background: #b65cff; }
